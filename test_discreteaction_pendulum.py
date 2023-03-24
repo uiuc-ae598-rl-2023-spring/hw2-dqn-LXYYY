@@ -3,6 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import discreteaction_pendulum
 
+import dqn
+import torch.optim as optim
+
 
 def main():
     # Create environment
@@ -20,16 +23,55 @@ def main():
     #   computation time?
     env = discreteaction_pendulum.Pendulum()
 
+    hidden_size = 64
+    gamma = 0.95
+    lr = 0.001
+
+    model = dqn.DQN(env.num_states, hidden_dim=hidden_size,
+                    output_dim=env.num_actions)
+    buffer = dqn.ReplayBuffer(
+        buffer_size=10000, state_dim=env.num_states, batch_size=32)
+    opt = optim.Adam(model.parameters(), lr=lr)
+
+    agent = dqn.Agent(model, buffer, opt, env.num_states,
+                      env.num_states, gamma)
+
+    # Train agent
+    scores = dqn.train(env, agent, num_episodes=10000, batch_size=32,
+                       epsilon=1.0, epsilon_decay=0.99, epsilon_min=0.1, render=False)
+
+    # save model
+    agent.save_model('dqn.pth')
+
     ######################################
     #
     #   EXAMPLE OF CREATING A VIDEO
     #
 
-    # Define a policy that maps every state to the "zero torque" action
-    policy = lambda s: env.num_actions // 2
+    policy = agent.get_policy()
 
     # Simulate an episode and save the result as an animated gif
-    env.video(policy, filename='figures/test_discreteaction_pendulum.gif')
+    env.video(policy=policy,
+              filename='figures/test_discreteaction_pendulum.gif')
+
+    # Plot actions of a sample trajectory
+    s = env.reset()
+    done = False
+    na = []
+    while not done:
+        a = policy(s)
+        s, r, done = env.step(a)
+        na.append(a)
+
+    plt.figure('Actions')
+    plt.plot(na)
+
+    plt.figure('Scores')
+    # Plot scores
+    plt.plot(scores)
+    plt.xlabel('Episode')
+    plt.ylabel('Score')
+    plt.ylim(0, 100)
 
     #
     ######################################
@@ -39,7 +81,7 @@ def main():
     #   EXAMPLE OF CREATING A PLOT
     #
 
-    # Initialize simulation
+    # # Initialize simulation
     s = env.reset()
 
     # Create dict to store data from simulation
@@ -78,6 +120,7 @@ def main():
     ax[2].set_xlabel('time step')
     plt.tight_layout()
     plt.savefig('figures/test_discreteaction_pendulum.png')
+    plt.show()
 
     #
     ######################################
