@@ -2,12 +2,30 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import discreteaction_pendulum
-
-import dqn
+import sys
+import argparse
 import torch.optim as optim
 
+import dqn
+import plot
 
+load_ckp = True
+ckp = 'dqn.pth'
+
+
+# Main function with arguments
 def main():
+
+    # arg parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--load', action='store_true', help='load checkpoint')
+    parser.add_argument('--save', action='store_true', help='save checkpoint')
+    parser.add_argument('--exp', type=str, help='experiment name')
+
+    exp = parser.parse_args().exp if parser.parse_args().exp else 'dqn'
+    load_ckp = parser.parse_args().load if parser.parse_args().load else False
+    ckp = exp+'.pth'
+
     # Create environment
     #
     #   By default, the action space (tau) is discretized with 31 grid points.
@@ -36,12 +54,16 @@ def main():
     agent = dqn.Agent(model, buffer, opt, env.num_states,
                       env.num_states, gamma)
 
-    # Train agent
-    scores = dqn.train(env, agent, num_episodes=10000, batch_size=32,
-                       epsilon=1.0, epsilon_decay=0.99, epsilon_min=0.1, render=False)
+    scores = None
+    if load_ckp:
+        agent.load_model(ckp)
+    else:
+        # Train agent
+        scores = dqn.train(env, agent, num_episodes=1000, batch_size=32,
+                           epsilon=1.0, epsilon_decay=0.99, epsilon_min=0.1, render=False)
 
-    # save model
-    agent.save_model('dqn.pth')
+        # save model
+        agent.save_model(ckp)
 
     ######################################
     #
@@ -66,12 +88,14 @@ def main():
     plt.figure('Actions')
     plt.plot(na)
 
-    plt.figure('Scores')
-    # Plot scores
-    plt.plot(scores)
-    plt.xlabel('Episode')
-    plt.ylabel('Score')
-    plt.ylim(0, 100)
+    if scores is not None:
+        # save scores
+        np.save('scores.npy', scores)
+
+        plt.figure()
+        plt.ylim(0, 100)
+        plot.plot_learning_curves(
+            scores, 'dqn_bs32_lr0.001_h64_g0.95', save=True)
 
     #
     ######################################
@@ -95,7 +119,7 @@ def main():
     # Simulate until episode is done
     done = False
     while not done:
-        a = random.randrange(env.num_actions)
+        a = policy(s)
         (s, r, done) = env.step(a)
         data['t'].append(data['t'][-1] + 1)
         data['s'].append(s)
