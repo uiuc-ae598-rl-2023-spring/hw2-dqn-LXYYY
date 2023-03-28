@@ -52,6 +52,9 @@ class Pendulum():
     def _x_to_s(self, x):
         return np.array([((x[0] + np.pi) % (2 * np.pi)) - np.pi, x[1]])
 
+    def a_to_u(self, a):
+        return self._a_to_u(a)
+
     def _a_to_u(self, a):
         return -self.max_tau + ((2 * self.max_tau * a) / (self.num_actions - 1))
 

@@ -150,7 +150,7 @@ class Plot:
                         self.experiment + '/policy.png')
         plt.show()
 
-    def plot_state_value_function(self, V, s=None, save=False, state_names=None):
+    def plot_state_value_function(self, V, title, s=None, save=False, state_names=None, ):
         if state_names is None:
             state_names = self.env.state_names
         self.make_dirs()
@@ -177,7 +177,7 @@ class Plot:
         elif s is not None:
             # draw boxes and set size to a grid box without gap, and shape to square
             plt.scatter(s[:, 0], s[:, 1], marker=MarkerStyle('s'), c=cmap(
-                (V - max_v_min) / (max_v_max - max_v_min)), s=1000)
+                (V - max_v_min) * 0.8 / (max_v_max - max_v_min)), s=1000)
 
         # draw colorbar and set max and min values
         cbar = plt.colorbar()
@@ -189,11 +189,11 @@ class Plot:
         # set x and y labels
         plt.xlabel(state_names[0])
         plt.ylabel(state_names[1])
-        plt.title('State-Value Function of ' +
-                  self.experiment + ' in ' + self.scene)
+        plt.title(title)
         if save:
-            plt.savefig('figures/' + self.scene + '/' +
-                        self.experiment + '/value_function.png')
+            # replace spaces in title with underscores
+            file_name = title.replace(' ', '_')
+            plt.savefig(file_name);
         plt.show()
 
     def clear(self, k):

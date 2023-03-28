@@ -87,14 +87,15 @@ class Agent:
         self.optimizer.step()
 
     def get_action(self, state, epsilon):
-        if np.random.rand() <= epsilon:
-            return np.random.randint(self.action_size)
+        if epsilon != 0 and np.random.rand() <= epsilon:
+            return np.random.randint(state.shape[0], self.action_size)
         else:
             state = torch.FloatTensor(state).to(self.device)
             q_value = self.model(state)
-            return q_value.max(0)[1].item()
+            return q_value.max(1)[1].detach().numpy() if len(
+                q_value.shape) > 1 else q_value.max(0)[1].detach().numpy()
 
-    def get_policy(self):
+    def get_policy_f(self):
         from functools import partial
         return partial(self.get_action, epsilon=0.0)
 

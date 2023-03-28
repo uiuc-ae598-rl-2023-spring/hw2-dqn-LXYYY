@@ -68,7 +68,7 @@ def main():
     #   EXAMPLE OF CREATING A VIDEO
     #
 
-    policy = agent.get_policy()
+    policy = agent.get_policy_f()
 
     # Simulate an episode and save the result as an animated gif
     env.video(policy=policy,
@@ -107,7 +107,15 @@ def main():
 
     plt.figure()
     V = agent.get_state_value(s)
-    p.plot_state_value_function(V, s=s, save=False, state_names=['theta', 'thetadot'])
+    p.plot_state_value_function(V, title="State-Value Function of " + exp, s=s, save=False,
+                                state_names=['theta', 'thetadot'])
+
+    policy_matrix = agent.get_action(s, 0)
+    # action to tau
+    policy_matrix = env.a_to_u(policy_matrix)
+
+    p.plot_state_value_function(policy_matrix, title="Policy of " + exp, s=s, save=False,
+                                state_names=['theta', 'thetadot'])
 
     #
     ######################################
