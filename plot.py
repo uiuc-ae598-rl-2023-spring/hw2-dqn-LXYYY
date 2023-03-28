@@ -150,7 +150,8 @@ class Plot:
                         self.experiment + '/policy.png')
         plt.show()
 
-    def plot_state_value_function(self, V, title, s=None, save=False, state_names=None, ):
+    def plot_state_value_function(self, V, title, s=None, save=False, state_names=None):
+        plt.figure()
         if state_names is None:
             state_names = self.env.state_names
         self.make_dirs()
@@ -193,7 +194,7 @@ class Plot:
         if save:
             # replace spaces in title with underscores
             file_name = title.replace(' ', '_')
-            plt.savefig(file_name);
+            plt.savefig('figures/' + file_name + '.png')
         plt.show()
 
     def clear(self, k):

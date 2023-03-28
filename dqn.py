@@ -4,26 +4,67 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import numpy as np
+import re
+import os
 
 
 # DQN with tanh activation function
+def get_activ(a):
+    if a == 't':
+        return nn.Tanh(), 'nn.Tanh()'
+    elif a == 'r':
+        return nn.ReLU(), 'nn.ReLU()'
+    elif a == 'l':
+        return nn.LeakyReLU(), 'nn.LeakyReLU()'
+    elif a == 'e':
+        return nn.ELU(), 'nn.ELU()'
+    elif a == 's':
+        return nn.Sigmoid(), 'nn.Sigmoid()'
+    else:
+        raise ValueError('Unknown activation function: ' + a)
+
+
+def parse_string(hs: str):
+    # split hs into a list of ints and letters
+    h = re.findall(r'\d+|\D+', hs)
+    # check all odd id are letter
+    assert all([h[i].isalpha() for i in range(0, len(h), 2)])
+    # check all even id are int
+    assert all([h[i].isdigit() for i in range(1, len(h), 2)])
+    activ = [h[i] for i in range(0, len(h), 2)]
+    sizes = [int(h[i]) for i in range(1, len(h), 2)]
+    assert len(activ) == len(sizes)
+    return activ, sizes
+
+
 class DQN(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim):
+
+    def __init__(self, input_dim, hs: str, output_dim):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(input_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.fc3 = nn.Linear(hidden_dim, output_dim)
+        # parse hs
+        activ, sizes = parse_string(hs)
+        print('Build a DQN with hidden layers: ' + hs)
+        self.layers = nn.ModuleList([nn.Linear(input_dim, sizes[0])])
+        print('Linear(' + str(input_dim) + ', ' + str(sizes[0]) + ')')
+
+        for i in range(0, len(sizes)):
+            activ_layer, name = get_activ(activ[i])
+            self.layers.append(activ_layer)
+            print(name)
+            s_in = sizes[i]
+            s_out = sizes[i + 1] if i + 1 < len(sizes) else output_dim
+            self.layers.append(nn.Linear(s_in, s_out))
+            print('Linear(' + str(s_in) + ', ' + str(s_out) + ')')
 
     def forward(self, x):
-        x = torch.tanh(self.fc1(x))
-        x = torch.tanh(self.fc2(x))
-        x = self.fc3(x)
+        for layer in self.layers:
+            x = layer(x)
         return x
 
 
 # Replay Buffer
 class ReplayBuffer:
-    def __init__(self, buffer_size, state_dim, batch_size):
+    def __init__(self, buffer_size, state_dim):
         self.buffer_size = buffer_size
         self.ptr = 0
         self.cur_size = 0
@@ -88,7 +129,7 @@ class Agent:
 
     def get_action(self, state, epsilon):
         if epsilon != 0 and np.random.rand() <= epsilon:
-            return np.random.randint(state.shape[0], self.action_size)
+            return np.random.randint(self.action_size)
         else:
             state = torch.FloatTensor(state).to(self.device)
             q_value = self.model(state)
@@ -109,8 +150,12 @@ class Agent:
         torch.save(self.model.state_dict(), path)
 
     def load_model(self, path):
-        print("Loading model from {}".format(path))
-        self.model.load_state_dict(torch.load(path))
+        # check path exists
+        if os.path.isfile(path):
+            print("Loading model from {}".format(path))
+            self.model.load_state_dict(torch.load(path))
+        else:
+            print("No model found at {}".format(path))
 
 
 def train(env, agent, num_episodes, batch_size, epsilon, epsilon_decay, epsilon_min, render=False):

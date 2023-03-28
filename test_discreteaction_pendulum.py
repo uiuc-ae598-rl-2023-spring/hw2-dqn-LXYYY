@@ -1,5 +1,10 @@
 import random
 import numpy as np
+import matplotlib
+
+# Set the backend to 'agg' to turn off plot windows
+matplotlib.use('agg')
+
 import matplotlib.pyplot as plt
 import discreteaction_pendulum
 import sys
@@ -8,6 +13,7 @@ import torch.optim as optim
 
 import dqn
 import plot
+from utils import *
 
 
 # Main function with arguments
@@ -18,153 +24,156 @@ def main():
     parser.add_argument('--save', action='store_true', help='save checkpoint')
     parser.add_argument('--train', action='store_true', help='train model')
     parser.add_argument('--exp', type=str, help='experiment name')
+    parser.add_argument('--config', type=str, help='config file name')
 
-    exp = parser.parse_args().exp if parser.parse_args().exp else 'dqn'
     load_ckp = parser.parse_args().load if parser.parse_args().load else False
     train = parser.parse_args().train if parser.parse_args().train else False
-    ckp = exp + '.pth'
+    config = parser.parse_args().config if parser.parse_args().config else 'ablation.json'
+    # get exps from config file
+    networks = read_json_file(config)['networks']
+    display = True if len(networks) == 1 else False
 
-    # Create environment
-    #
-    #   By default, the action space (tau) is discretized with 31 grid points.
-    #
-    #   You can change the number of grid points as follows (for example):
-    #
-    #       env = discrete_pendulum.Pendulum(num_actions=21)
-    #
-    #   Note that there will only be a grid point at "0" if the number of grid
-    #   points is odd.
-    #
-    #   How does performance vary with the number of grid points? What about
-    #   computation time?
-    env = discreteaction_pendulum.Pendulum()
+    for exp in networks:
+        ckp = 'data/' + exp + '.pth'
 
-    hidden_size = 64
-    gamma = 0.95
-    lr = 0.001
+        # Create environment
+        #
+        #   By default, the action space (tau) is discretized with 31 grid points.
+        #
+        #   You can change the number of grid points as follows (for example):
+        #
+        #       env = discrete_pendulum.Pendulum(num_actions=21)
+        #
+        #   Note that there will only be a grid point at "0" if the number of grid
+        #   points is odd.
+        #
+        #   How does performance vary with the number of grid points? What about
+        #   computation time?
+        env = discreteaction_pendulum.Pendulum()
 
-    model = dqn.DQN(env.num_states, hidden_dim=hidden_size,
-                    output_dim=env.num_actions)
-    buffer = dqn.ReplayBuffer(
-        buffer_size=10000, state_dim=env.num_states, batch_size=32)
-    opt = optim.Adam(model.parameters(), lr=lr)
+        h, lr, e, ed, em = get_parameters_from_description(exp)
+        gamma = 0.95
 
-    agent = dqn.Agent(model, buffer, opt, env.num_states,
-                      env.num_states, gamma)
+        model = dqn.DQN(env.num_states, h, env.num_actions)
+        buffer = dqn.ReplayBuffer(
+            buffer_size=10000, state_dim=env.num_states)
+        opt = optim.Adam(model.parameters(), lr=lr)
 
-    scores = None
-    if load_ckp:
-        agent.load_model(ckp)
-    if train:
-        # Train agent
-        scores = dqn.train(env, agent, num_episodes=1000, batch_size=32,
-                           epsilon=1.0, epsilon_decay=0.99, epsilon_min=0.1, render=False)
+        agent = dqn.Agent(model, buffer, opt, env.num_states,
+                          env.num_states, gamma)
 
-        # save model
-        agent.save_model(ckp)
+        scores = None
+        if load_ckp:
+            agent.load_model(ckp)
+        if train:
+            # Train agent
+            scores = dqn.train(env, agent, num_episodes=10, batch_size=32,
+                               epsilon=1.0, epsilon_decay=0.99, epsilon_min=0.1, render=False)
 
-    ######################################
-    #
-    #   EXAMPLE OF CREATING A VIDEO
-    #
+            # save model
+            agent.save_model(ckp)
 
-    policy = agent.get_policy_f()
+        ######################################
+        #
+        #   EXAMPLE OF CREATING A VIDEO
+        #
 
-    # Simulate an episode and save the result as an animated gif
-    env.video(policy=policy,
-              filename='figures/test_discreteaction_pendulum.gif')
+        policy = agent.get_policy_f()
 
-    # Plot actions of a sample trajectory
-    s = env.reset()
-    done = False
-    na = []
-    while not done:
-        a = policy(s)
-        s, r, done = env.step(a)
-        na.append(a)
+        # Simulate an episode and save the result as an animated gif
+        env.video(policy=policy,
+                  filename='figures/test_discreteaction_pendulum_' + exp + '.gif')
 
-    plt.figure('Actions')
-    plt.plot(na)
+        # Plot actions of a sample trajectory
+        s = env.reset()
+        done = False
+        na = []
+        while not done:
+            a = policy(s)
+            s, r, done = env.step(a)
+            na.append(a)
 
-    if scores is not None:
-        # save scores
-        np.save('scores.npy', scores)
+        plt.figure('Actions')
+        plt.plot(na)
 
-        plt.figure()
-        plt.ylim(0, 100)
-        plot.plot_learning_curves(
-            [scores], ['dqn_bs32_lr0.001_h64_g0.95'], save=True)
+        if scores is not None:
+            # save scores
+            np.save('data/scores_' + exp + '.npy', scores)
+        #
+        #     plt.figure()
+        #     plt.ylim(0, 100)
+        #     plot.plot_learning_curves(
+        #         [scores], [exp], save=True)
 
-    # plot state-value function
-    p = plot.Plot(env, "pendumlum", "dqn")
-    ntheta = np.linspace(-np.pi, np.pi, 200)
-    nthetadot = np.linspace(-15, 15, 200)
-    # make a grid matrix of theta and thetadot
-    theta, thetadot = np.meshgrid(ntheta, nthetadot)
-    # combine the two matrix into a 2D array
-    s = np.stack((theta, thetadot), axis=-1)
-    s = s.reshape(-1, 2)
+        # plot state-value function
+        p = plot.Plot(env, "pendumlum", "dqn")
+        ntheta = np.linspace(-np.pi, np.pi, 200)
+        nthetadot = np.linspace(-15, 15, 200)
+        # make a grid matrix of theta and thetadot
+        theta, thetadot = np.meshgrid(ntheta, nthetadot)
+        # combine the two matrix into a 2D array
+        s = np.stack((theta, thetadot), axis=-1)
+        s = s.reshape(-1, 2)
 
-    plt.figure()
-    V = agent.get_state_value(s)
-    p.plot_state_value_function(V, title="State-Value Function of " + exp, s=s, save=False,
-                                state_names=['theta', 'thetadot'])
+        V = agent.get_state_value(s)
+        p.plot_state_value_function(V, title="State-Value Function of " + exp, s=s, save=True,
+                                    state_names=['theta', 'thetadot'])
 
-    policy_matrix = agent.get_action(s, 0)
-    # action to tau
-    policy_matrix = env.a_to_u(policy_matrix)
+        policy_matrix = agent.get_action(s, 0)
+        # action to tau
+        policy_matrix = env.a_to_u(policy_matrix)
 
-    p.plot_state_value_function(policy_matrix, title="Policy of " + exp, s=s, save=False,
-                                state_names=['theta', 'thetadot'])
+        p.plot_state_value_function(policy_matrix, title="Policy of " + exp, s=s, save=True,
+                                    state_names=['theta', 'thetadot'])
 
-    #
-    ######################################
+        #
+        ######################################
 
-    ######################################
-    #
-    #   EXAMPLE OF CREATING A PLOT
-    #
+        ######################################
+        #
+        #   EXAMPLE OF CREATING A PLOT
+        #
 
-    # # Initialize simulation
-    s = env.reset()
+        # # Initialize simulation
+        s = env.reset()
 
-    # Create dict to store data from simulation
-    data = {
-        't': [0],
-        's': [s],
-        'a': [],
-        'r': [],
-    }
+        # Create dict to store data from simulation
+        data = {
+            't': [0],
+            's': [s],
+            'a': [],
+            'r': [],
+        }
 
-    # Simulate until episode is done
-    done = False
-    while not done:
-        a = policy(s)
-        (s, r, done) = env.step(a)
-        data['t'].append(data['t'][-1] + 1)
-        data['s'].append(s)
-        data['a'].append(a)
-        data['r'].append(r)
+        # Simulate until episode is done
+        done = False
+        while not done:
+            a = policy(s)
+            (s, r, done) = env.step(a)
+            data['t'].append(data['t'][-1] + 1)
+            data['s'].append(s)
+            data['a'].append(a)
+            data['r'].append(r)
 
-    # Parse data from simulation
-    data['s'] = np.array(data['s'])
-    theta = data['s'][:, 0]
-    thetadot = data['s'][:, 1]
-    tau = [env._a_to_u(a) for a in data['a']]
+        # Parse data from simulation
+        data['s'] = np.array(data['s'])
+        theta = data['s'][:, 0]
+        thetadot = data['s'][:, 1]
+        tau = [env._a_to_u(a) for a in data['a']]
 
-    # Plot data and save to png file
-    fig, ax = plt.subplots(3, 1, figsize=(10, 10))
-    ax[0].plot(data['t'], theta, label='theta')
-    ax[0].plot(data['t'], thetadot, label='thetadot')
-    ax[0].legend()
-    ax[1].plot(data['t'][:-1], tau, label='tau')
-    ax[1].legend()
-    ax[2].plot(data['t'][:-1], data['r'], label='r')
-    ax[2].legend()
-    ax[2].set_xlabel('time step')
-    plt.tight_layout()
-    plt.savefig('figures/test_discreteaction_pendulum.png')
-    plt.show()
+        # Plot data and save to png file
+        fig, ax = plt.subplots(3, 1, figsize=(10, 10))
+        ax[0].plot(data['t'], theta, label='theta')
+        ax[0].plot(data['t'], thetadot, label='thetadot')
+        ax[0].legend()
+        ax[1].plot(data['t'][:-1], tau, label='tau')
+        ax[1].legend()
+        ax[2].plot(data['t'][:-1], data['r'], label='r')
+        ax[2].legend()
+        ax[2].set_xlabel('time step')
+        plt.tight_layout()
+        plt.savefig('figures/test_discreteaction_pendulum_' + exp + '.png')
+        plt.show()
 
     #
     ######################################

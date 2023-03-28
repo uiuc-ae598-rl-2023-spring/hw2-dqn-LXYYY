@@ -136,3 +136,5 @@ dmypy.json
 *.pth
 *.npy
 *.png
+data/
+*.gif
