@@ -95,16 +95,20 @@ class ReplayBuffer:
 
 
 class Agent:
-    def __init__(self, model, buffer, opt, state_size, action_size, gamma):
+    def __init__(self, target_network, policy_network, buffer, opt, state_size, action_size, target_update, gamma):
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")
         self.gamma = gamma
         self.state_size = state_size
         self.action_size = action_size
-        self.model = model
+        self.target_network = target_network
+        self.policy_network = policy_network
         self.optimizer = opt
         self.criterion = nn.MSELoss()
         self.buffer = buffer
+        self.target_update = target_update
+        self.target_network.load_state_dict(self.policy_network.state_dict())
+        self.step = 0
 
     def update(self, batch_size):
         state, action, reward, next_state, done = self.buffer.sample(
@@ -118,8 +122,8 @@ class Agent:
         reward = torch.FloatTensor(reward).to(self.device).reshape(batch_size)
         done = torch.FloatTensor(done).to(self.device).reshape(batch_size)
 
-        q_value = self.model(state).gather(1, action).squeeze(1)
-        next_q_value = self.model(next_state).max(1)[0]
+        q_value = self.policy_network(state).gather(1, action).squeeze(1)
+        next_q_value = self.target_network(next_state).max(1)[0]
         expected_q_value = reward + self.gamma * next_q_value * (1 - done)
         loss = self.criterion(q_value, expected_q_value.detach())
 
@@ -127,12 +131,20 @@ class Agent:
         loss.backward()
         self.optimizer.step()
 
+        self.step += 1
+        if self.step % self.target_update == 0:
+            self.target_network.load_state_dict(self.policy_network.state_dict())
+            self.step = 0
+
+    def update_target(self):
+        self.target_network.load_state_dict(self.policy_network.state_dict())
+
     def get_action(self, state, epsilon):
         if epsilon != 0 and np.random.rand() <= epsilon:
             return np.random.randint(self.action_size)
         else:
             state = torch.FloatTensor(state).to(self.device)
-            q_value = self.model(state)
+            q_value = self.target_network(state)
             return q_value.max(1)[1].detach().numpy() if len(
                 q_value.shape) > 1 else q_value.max(0)[1].detach().numpy()
 
@@ -142,18 +154,18 @@ class Agent:
 
     def get_state_value(self, state):
         state = torch.FloatTensor(state).to(self.device)
-        q_value = self.model(state)
+        q_value = self.target_network(state)
         # get the max value of the state and flatten it
         return q_value.max(1)[0].detach().numpy()
 
     def save_model(self, path):
-        torch.save(self.model.state_dict(), path)
+        torch.save(self.target_network.state_dict(), path)
 
     def load_model(self, path):
         # check path exists
         if os.path.isfile(path):
             print("Loading model from {}".format(path))
-            self.model.load_state_dict(torch.load(path))
+            self.target_network.load_state_dict(torch.load(path))
         else:
             print("No model found at {}".format(path))
 

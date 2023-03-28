@@ -31,6 +31,7 @@ def main():
     config = parser.parse_args().config if parser.parse_args().config else 'ablation.json'
     # get exps from config file
     networks = read_json_file(config)['networks']
+    episodes = read_json_file(config)['episodes']
     display = True if len(networks) == 1 else False
 
     for exp in networks:
@@ -51,23 +52,24 @@ def main():
         #   computation time?
         env = discreteaction_pendulum.Pendulum()
 
-        h, lr, e, ed, em = get_parameters_from_description(exp)
+        h, lr, e, ed, em, tu = get_parameters_from_description(exp)
         gamma = 0.95
 
-        model = dqn.DQN(env.num_states, h, env.num_actions)
+        target_network = dqn.DQN(env.num_states, h, env.num_actions)
+        policy_network = dqn.DQN(env.num_states, h, env.num_actions)
         buffer = dqn.ReplayBuffer(
             buffer_size=10000, state_dim=env.num_states)
-        opt = optim.Adam(model.parameters(), lr=lr)
+        opt = optim.Adam(policy_network.parameters(), lr=lr)
 
-        agent = dqn.Agent(model, buffer, opt, env.num_states,
-                          env.num_states, gamma)
+        agent = dqn.Agent(target_network, policy_network, buffer, opt, env.num_states,
+                          env.num_states, tu, gamma)
 
         scores = None
         if load_ckp:
             agent.load_model(ckp)
         if train:
             # Train agent
-            scores = dqn.train(env, agent, num_episodes=10, batch_size=32,
+            scores = dqn.train(env, agent, num_episodes=episodes, batch_size=32,
                                epsilon=1.0, epsilon_decay=0.99, epsilon_min=0.1, render=False)
 
             # save model
