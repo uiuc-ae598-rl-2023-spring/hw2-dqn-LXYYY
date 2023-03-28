@@ -52,13 +52,13 @@ def main():
         #   computation time?
         env = discreteaction_pendulum.Pendulum()
 
-        h, lr, e, ed, em, tu = get_parameters_from_description(exp)
+        h, lr, e, ed, em, tu, bs, rs = get_parameters_from_description(exp)
         gamma = 0.95
 
         target_network = dqn.DQN(env.num_states, h, env.num_actions)
         policy_network = dqn.DQN(env.num_states, h, env.num_actions)
         buffer = dqn.ReplayBuffer(
-            buffer_size=10000, state_dim=env.num_states)
+            buffer_size=rs, state_dim=env.num_states)
         opt = optim.Adam(policy_network.parameters(), lr=lr)
 
         agent = dqn.Agent(target_network, policy_network, buffer, opt, env.num_states,
@@ -69,8 +69,8 @@ def main():
             agent.load_model(ckp)
         if train:
             # Train agent
-            scores = dqn.train(env, agent, num_episodes=episodes, batch_size=32,
-                               epsilon=1.0, epsilon_decay=0.99, epsilon_min=0.1, render=False)
+            scores = dqn.train(env, agent, num_episodes=episodes, batch_size=bs,
+                               epsilon=e, epsilon_decay=ed, epsilon_min=em, render=False)
 
             # save model
             agent.save_model(ckp)
@@ -118,14 +118,14 @@ def main():
         s = s.reshape(-1, 2)
 
         V = agent.get_state_value(s)
-        p.plot_state_value_function(V, title="State-Value Function of " + exp, s=s, save=True,
+        p.plot_state_value_function(V, title="State-Value Function of DQN\n" + exp[4:], s=s, save=True,
                                     state_names=['theta', 'thetadot'])
 
         policy_matrix = agent.get_action(s, 0)
         # action to tau
         policy_matrix = env.a_to_u(policy_matrix)
 
-        p.plot_state_value_function(policy_matrix, title="Policy of " + exp, s=s, save=True,
+        p.plot_state_value_function(policy_matrix, title="Policy of DQN\n" + exp[4:], s=s, save=True,
                                     state_names=['theta', 'thetadot'])
 
         #

@@ -110,7 +110,6 @@ class Plot:
             plt.show()
 
     def plot_policy(self, policy, save=False):
-        self.make_dirs()
         if self.scene == 'gridworld':
             self._plot_grid()
             # arrows
@@ -150,11 +149,10 @@ class Plot:
                         self.experiment + '/policy.png')
         plt.show()
 
-    def plot_state_value_function(self, V, title, s=None, save=False, state_names=None):
+    def plot_state_value_function(self, V, title, s=None, save=False, state_names=None, caption=None):
         plt.figure()
         if state_names is None:
             state_names = self.env.state_names
-        self.make_dirs()
         # colormap from q values to colors
         cmap = get_cmap('jet')
         # get max and min q values
@@ -191,9 +189,16 @@ class Plot:
         plt.xlabel(state_names[0])
         plt.ylabel(state_names[1])
         plt.title(title)
+        # add caption
+        if caption is not None:
+            plt.figtext(0.5, 0.01, caption, wrap=True,
+                        horizontalalignment='center', fontsize=12)
         if save:
             # replace spaces in title with underscores
             file_name = title.replace(' ', '_')
+            file_name += '_' + caption.replace(' ', '_') if caption is not None else ''
+            # replace \n with _
+            file_name = file_name.replace('\n', '_')
             plt.savefig('figures/' + file_name + '.png')
         plt.show()
 

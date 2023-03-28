@@ -26,4 +26,6 @@ def get_parameters_from_description(description):
     ed = float(parameters['ed']) if 'ed' in parameters else 1.0
     em = float(parameters['em']) if 'em' in parameters else 0.0
     tu = int(parameters['tu']) if 'tu' in parameters else 100
-    return h, lr, e, ed, em, tu
+    bs = int(parameters['bs']) if 'bs' in parameters else 32
+    rs = int(parameters['rs']) if 'rs' in parameters else 10000
+    return h, lr, e, ed, em, tu, bs, rs
