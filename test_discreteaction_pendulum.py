@@ -9,22 +9,20 @@ import torch.optim as optim
 import dqn
 import plot
 
-load_ckp = True
-ckp = 'dqn.pth'
-
 
 # Main function with arguments
 def main():
-
     # arg parser
     parser = argparse.ArgumentParser()
     parser.add_argument('--load', action='store_true', help='load checkpoint')
     parser.add_argument('--save', action='store_true', help='save checkpoint')
+    parser.add_argument('--train', action='store_true', help='train model')
     parser.add_argument('--exp', type=str, help='experiment name')
 
     exp = parser.parse_args().exp if parser.parse_args().exp else 'dqn'
     load_ckp = parser.parse_args().load if parser.parse_args().load else False
-    ckp = exp+'.pth'
+    train = parser.parse_args().train if parser.parse_args().train else False
+    ckp = exp + '.pth'
 
     # Create environment
     #
@@ -57,7 +55,7 @@ def main():
     scores = None
     if load_ckp:
         agent.load_model(ckp)
-    else:
+    if train:
         # Train agent
         scores = dqn.train(env, agent, num_episodes=1000, batch_size=32,
                            epsilon=1.0, epsilon_decay=0.99, epsilon_min=0.1, render=False)
@@ -95,7 +93,21 @@ def main():
         plt.figure()
         plt.ylim(0, 100)
         plot.plot_learning_curves(
-            scores, 'dqn_bs32_lr0.001_h64_g0.95', save=True)
+            [scores], ['dqn_bs32_lr0.001_h64_g0.95'], save=True)
+
+    # plot state-value function
+    p = plot.Plot(env, "pendumlum", "dqn")
+    ntheta = np.linspace(-np.pi, np.pi, 200)
+    nthetadot = np.linspace(-15, 15, 200)
+    # make a grid matrix of theta and thetadot
+    theta, thetadot = np.meshgrid(ntheta, nthetadot)
+    # combine the two matrix into a 2D array
+    s = np.stack((theta, thetadot), axis=-1)
+    s = s.reshape(-1, 2)
+
+    plt.figure()
+    V = agent.get_state_value(s)
+    p.plot_state_value_function(V, s=s, save=False, state_names=['theta', 'thetadot'])
 
     #
     ######################################

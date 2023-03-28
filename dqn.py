@@ -46,7 +46,8 @@ class ReplayBuffer:
     def sample(self, batch_size):
         indices = np.random.choice(
             self.cur_size, batch_size, replace=False)
-        return self.states[indices], self.actions[indices], self.rewards[indices], self.next_states[indices], self.terminals[indices]
+        return self.states[indices], self.actions[indices], self.rewards[indices], self.next_states[indices], \
+            self.terminals[indices]
 
     def __len__(self):
         return self.cur_size
@@ -97,10 +98,17 @@ class Agent:
         from functools import partial
         return partial(self.get_action, epsilon=0.0)
 
+    def get_state_value(self, state):
+        state = torch.FloatTensor(state).to(self.device)
+        q_value = self.model(state)
+        # get the max value of the state and flatten it
+        return q_value.max(1)[0].detach().numpy()
+
     def save_model(self, path):
         torch.save(self.model.state_dict(), path)
 
     def load_model(self, path):
+        print("Loading model from {}".format(path))
         self.model.load_state_dict(torch.load(path))
 
 
@@ -126,4 +134,3 @@ def train(env, agent, num_episodes, batch_size, epsilon, epsilon_decay, epsilon_
         print("episode: {}, score: {:.1f}, memory length: {}, epsilon: {:.1f}".format(
             e, score, len(agent.buffer), epsilon))
     return scores
-

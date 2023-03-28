@@ -100,9 +100,9 @@ class Plot:
                     y = np.cos(theta)
                     # draw x and y separately
                     plt.plot(x, label='x', color='r', **
-                             kwargs, **self.plot_args[k])
+                    kwargs, **self.plot_args[k])
                     plt.plot(y, label='y', color='b', **
-                             kwargs, **self.plot_args[k])
+                    kwargs, **self.plot_args[k])
             plt.legend()
             if save:
                 plt.savefig('figures/' + self.scene + '/' +
@@ -150,7 +150,9 @@ class Plot:
                         self.experiment + '/policy.png')
         plt.show()
 
-    def plot_state_value_function(self, V, save=False):
+    def plot_state_value_function(self, V, s=None, save=False, state_names=None):
+        if state_names is None:
+            state_names = self.env.state_names
         self.make_dirs()
         # colormap from q values to colors
         cmap = get_cmap('jet')
@@ -159,14 +161,23 @@ class Plot:
         max_v_max = np.max(V)
         if self.scene == 'gridworld':
             self._plot_grid()
-        # draw q values as colors
-        for i in range(len(V)):
-            x, y = self.env.get_pos(i)
-            y = self.env.state_shape[0] - 1 - \
-                y if self.scene == 'gridworld' else y
+
+        # if V is a 1d array
+        if s is None:
+            # draw q values as colors
+            for i in range(len(V)):
+                x, y = self.env.get_pos(i)
+                y = self.env.state_shape[0] - 1 - \
+                    y if self.scene == 'gridworld' else y
+                # draw boxes and set size to a grid box without gap, and shape to square
+                plt.scatter(x, y, marker=MarkerStyle('s'), c=cmap(
+                    (V[i] - max_v_min) / (max_v_max - max_v_min)), s=1000)
+
+        # if V is a 2d matrix
+        elif s is not None:
             # draw boxes and set size to a grid box without gap, and shape to square
-            plt.scatter(x, y, marker=MarkerStyle('s'), c=cmap(
-                (V[i] - max_v_min) / (max_v_max - max_v_min)), s=1000)
+            plt.scatter(s[:, 0], s[:, 1], marker=MarkerStyle('s'), c=cmap(
+                (V - max_v_min) / (max_v_max - max_v_min)), s=1000)
 
         # draw colorbar and set max and min values
         cbar = plt.colorbar()
@@ -176,8 +187,8 @@ class Plot:
         # set color bar label
         cbar.set_label('value')
         # set x and y labels
-        plt.xlabel(self.env.state_names[0])
-        plt.ylabel(self.env.state_names[1])
+        plt.xlabel(state_names[0])
+        plt.ylabel(state_names[1])
         plt.title('State-Value Function of ' +
                   self.experiment + ' in ' + self.scene)
         if save:
