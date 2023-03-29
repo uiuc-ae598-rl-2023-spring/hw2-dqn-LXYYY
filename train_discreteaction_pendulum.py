@@ -14,6 +14,7 @@ import torch.optim as optim
 import dqn
 import plot
 from utils import *
+from plot_learning_curves import plot_ablation
 
 
 # Main function with arguments
@@ -185,6 +186,7 @@ def main():
         plt.savefig('figures/test_discreteaction_pendulum_' + exp + '.png')
         plt.show()
 
+    plot_ablation()
     #
     ######################################
 
