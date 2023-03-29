@@ -110,6 +110,8 @@ Example agent same as above.
 ### 3. Animation of Example Trajectory
 Example agent same as above.
 
+[Link to gif](https://github.com/LXYYY/hw2-dqn-LXYYY/blob/main/figures/test_discreteaction_pendulum.gif)
+
 ![animation](figures/test_discreteaction_pendulum_DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:10000_r:0.gif)
 
 ### 4. Policy Plotting

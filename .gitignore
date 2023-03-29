@@ -138,3 +138,6 @@ dmypy.json
 *.png
 data/
 *.gif
+
+!figures/test_discreteaction_pendulum.gif
+!figures/test_discreteaction_pendulum.png
