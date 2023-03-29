@@ -196,6 +196,10 @@ def main():
     #
     ######################################
 
+    from plot_learning_curves import plot_ablation
+    plot_ablation()
+
+
 
 if __name__ == '__main__':
     main()

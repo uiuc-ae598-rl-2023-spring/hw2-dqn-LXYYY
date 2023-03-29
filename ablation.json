@@ -1,0 +1,29 @@
+{
+  "networks": [
+    "DQN_h:t64t64_lr:0.001_e:1_ed:0.99_em:0.3_tu:100_bs:32_rs:10000",
+    "DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:10000",
+    "DQN_h:t32t32t32_lr:0.001_e:1_ed:0.99_em:0.3_tu:100_bs:32_rs:10000",
+    "DQN_h:r64r64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:10000",
+    "DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:32",
+    "DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:1_bs:32_rs:10000",
+    "DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:1_bs:32_rs:32"
+  ],
+  "episodes": 2000,
+  "runs": 10,
+  "learning_curve_comp": [
+    [
+      "DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:10000",
+      "DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:1_bs:32_rs:10000",
+      "DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:32",
+      "DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:1_bs:32_rs:32"
+    ],
+    [
+      "DQN_h:t64t64_lr:0.001_e:1_ed:0.99_em:0.3_tu:100_bs:32_rs:10000",
+      "DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:10000",
+      "DQN_h:t32t32t32_lr:0.001_e:1_ed:0.99_em:0.3_tu:100_bs:32_rs:10000",
+      "DQN_h:r64r64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:10000"
+    ]
+  ],
+  "_comment": [
+  ]
+}

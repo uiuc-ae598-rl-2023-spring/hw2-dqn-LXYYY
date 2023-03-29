@@ -52,11 +52,15 @@ class Pendulum():
     def _x_to_s(self, x):
         return np.array([((x[0] + np.pi) % (2 * np.pi)) - np.pi, x[1]])
 
+    def a_to_u(self, a):
+        return self._a_to_u(a)
+
     def _a_to_u(self, a):
         return -self.max_tau + ((2 * self.max_tau * a) / (self.num_actions - 1))
 
     def _dxdt(self, x, u):
-        theta_ddot =  (u - self.params['b'] * x[1] + self.params['m'] * self.params['g'] * self.params['l'] * np.sin(x[0])) / (self.params['m'] * self.params['l']**2)
+        theta_ddot = (u - self.params['b'] * x[1] + self.params['m'] * self.params['g']
+                      * self.params['l'] * np.sin(x[0])) / (self.params['m'] * self.params['l']**2)
         return np.array([x[1], theta_ddot])
 
     def set_rg(self, rg):
@@ -71,7 +75,8 @@ class Pendulum():
         u = self._a_to_u(a)
 
         # Solve ODEs to find new x
-        sol = scipy.integrate.solve_ivp(fun=lambda t, x: self._dxdt(x, u), t_span=[0, self.dt], y0=self.x, t_eval=[self.dt])
+        sol = scipy.integrate.solve_ivp(fun=lambda t, x: self._dxdt(
+            x, u), t_span=[0, self.dt], y0=self.x, t_eval=[self.dt])
         self.x = sol.y[:, 0]
 
         # Convert x to s (same but with wrapped theta)
@@ -100,7 +105,8 @@ class Pendulum():
 
     def reset(self):
         # Sample theta and thetadot
-        self.x = self.rg.uniform([-np.pi, -self.max_thetadot_for_init], [np.pi, self.max_thetadot_for_init])
+        self.x = self.rg.uniform(
+            [-np.pi, -self.max_thetadot_for_init], [np.pi, self.max_thetadot_for_init])
 
         # Convert x to s (same but with wrapped theta)
         self.s = self._x_to_s(self.x)
@@ -119,7 +125,8 @@ class Pendulum():
             s_traj.append(s)
 
         fig = plt.figure(figsize=(5, 4))
-        ax = fig.add_subplot(111, autoscale_on=False, xlim=(-1.2, 1.2), ylim=(-1.2, 1.2))
+        ax = fig.add_subplot(111, autoscale_on=False,
+                             xlim=(-1.2, 1.2), ylim=(-1.2, 1.2))
         ax.set_aspect('equal')
         ax.grid()
         line, = ax.plot([], [], 'o-', lw=2)
@@ -131,7 +138,8 @@ class Pendulum():
             text.set_text(f'time = {i * self.dt:3.1f}')
             return line, text
 
-        anim = animation.FuncAnimation(fig, animate, len(s_traj), interval=(1000 * self.dt), blit=True, repeat=False)
+        anim = animation.FuncAnimation(fig, animate, len(
+            s_traj), interval=(1000 * self.dt), blit=True, repeat=False)
         anim.save(filename, writer=writer, fps=10)
 
         plt.close()

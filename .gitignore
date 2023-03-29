@@ -130,3 +130,14 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+.idea/
+.vscode/
+*.pth
+*.npy
+*.png
+data/
+*.gif
+
+!figures/test_discreteaction_pendulum.gif
+!figures/test_discreteaction_pendulum.png
