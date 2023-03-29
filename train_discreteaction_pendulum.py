@@ -1,6 +1,7 @@
 import random
 import numpy as np
 import matplotlib
+import time
 
 # Set the backend to 'agg' to turn off plot windows
 matplotlib.use('agg')
@@ -14,7 +15,6 @@ import torch.optim as optim
 import dqn
 import plot
 from utils import *
-from plot_learning_curves import plot_ablation
 
 
 # Main function with arguments
@@ -31,6 +31,10 @@ def main():
     # get exps from config file
     networks = read_json_file(config)['networks']
     episodes = read_json_file(config)['episodes']
+    runs = read_json_file(config)['runs']
+
+    # duplicate experiments for runs
+    networks = [exp + '_r:' + str(i) for exp in networks for i in range(runs)]
 
     print('Found {} experiments'.format(len(networks)))
 
@@ -52,11 +56,11 @@ def main():
         #
         #   How does performance vary with the number of grid points? What about
         #   computation time?
-        env = discreteaction_pendulum.Pendulum()
 
         h, lr, e, ed, em, tu, bs, rs = get_parameters_from_description(exp)
         gamma = 0.95
 
+        env = discreteaction_pendulum.Pendulum()
         target_network = dqn.DQN(env.num_states, h, env.num_actions)
         policy_network = dqn.DQN(env.num_states, h, env.num_actions)
         buffer = dqn.ReplayBuffer(
@@ -70,9 +74,12 @@ def main():
         if load_ckp:
             agent.load_model(ckp)
         if train:
+            t0 = time.perf_counter()
             # Train agent
             scores = dqn.train(env, agent, num_episodes=episodes, batch_size=bs,
                                epsilon=e, epsilon_decay=ed, epsilon_min=em, render=False)
+            t1 = time.perf_counter()
+            print('Train time: {}s, for exp. {}'.format(t1 - t0, exp))
 
             # save model
             agent.save_model(ckp)
@@ -186,9 +193,12 @@ def main():
         plt.savefig('figures/test_discreteaction_pendulum_' + exp + '.png')
         plt.show()
 
-    plot_ablation()
     #
     ######################################
+
+    from plot_learning_curves import plot_ablation
+    plot_ablation()
+
 
 
 if __name__ == '__main__':

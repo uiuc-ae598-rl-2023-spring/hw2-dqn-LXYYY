@@ -41,19 +41,20 @@ class DQN(nn.Module):
 
     def __init__(self, input_dim, hs: str, output_dim):
         super(DQN, self).__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # parse hs
         activ, sizes = parse_string(hs)
         print('Build a DQN with hidden layers: ' + hs)
-        self.layers = nn.ModuleList([nn.Linear(input_dim, sizes[0])])
+        self.layers = nn.ModuleList([nn.Linear(input_dim, sizes[0]).to(self.device)])
         print('Linear(' + str(input_dim) + ', ' + str(sizes[0]) + ')')
 
         for i in range(0, len(sizes)):
             activ_layer, name = get_activ(activ[i])
-            self.layers.append(activ_layer)
+            self.layers.append(activ_layer.to(self.device))
             print(name)
             s_in = sizes[i]
             s_out = sizes[i + 1] if i + 1 < len(sizes) else output_dim
-            self.layers.append(nn.Linear(s_in, s_out))
+            self.layers.append(nn.Linear(s_in, s_out).to(self.device))
             print('Linear(' + str(s_in) + ', ' + str(s_out) + ')')
 
     def forward(self, x):
@@ -63,6 +64,7 @@ class DQN(nn.Module):
 
 
 # Replay Buffer
+# Buffer using numpy array has better performance than using list
 class ReplayBuffer:
     def __init__(self, buffer_size, state_dim):
         self.buffer_size = buffer_size
@@ -145,8 +147,8 @@ class Agent:
         else:
             state = torch.FloatTensor(state).to(self.device)
             q_value = self.target_network(state)
-            return q_value.max(1)[1].detach().numpy() if len(
-                q_value.shape) > 1 else q_value.max(0)[1].detach().numpy()
+            return q_value.max(1)[1].detach().cpu().numpy() if len(
+                q_value.shape) > 1 else q_value.max(0)[1].detach().cpu().numpy()
 
     def get_policy_f(self):
         from functools import partial
@@ -156,7 +158,7 @@ class Agent:
         state = torch.FloatTensor(state).to(self.device)
         q_value = self.target_network(state)
         # get the max value of the state and flatten it
-        return q_value.max(1)[0].detach().numpy()
+        return q_value.max(1)[0].detach().cpu().numpy()
 
     def save_model(self, path):
         torch.save(self.target_network.state_dict(), path)

@@ -37,7 +37,18 @@ By setting these parameters, one can test different network structures and param
 - change `tu` to 1 to reset the target network every step
 - change `rs` equal to 32 to cancel the replay buffer
 
-Therefore, this config above will run 8 experiments with different network structures and parameters.
+One can also set training episodes and runs in `ablation.json`, i.e. 
+```json lines
+{
+  "networks": [...],
+  "episodes": 2000,
+  "runs": 10
+}
+```
+which tells the code to run 10 training runs of 2000 episodes each.
+
+Therefore, this config above will run 8 experiments with different network structures and parameters, 10 runs each, and 2000 episodes each run.
+
 There is **no hardcoded** experiments in the code, but done by **parsing the json file**.
 In which way, students can add new experiments with minimal effort.
 
@@ -86,34 +97,37 @@ python3 train_discreteaction_pendulum.py --train   # plotting included
 ## Results
 
 ### 1. Learning Curve 
+Each experiment are run only 10 times, for the limit of training time.
+Example results are from the first training run of the agent setting: `DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:10000`, i.e. 2 hidden layers with 64 neurons each, tanh activation, learning rate 0.001, epsilon 0.3, no epsilon decay, target update every 100 steps, batch size 32, replay size 10000.
 
-Example agent setting: `DQN_h:t64t64_lr:0.001_e:0.1_ed:1_em:0_tu:100_bs:32_rs:10000`, i.e. 2 hidden layers with 64 neurons each, tanh activation, learning rate 0.001, epsilon 0.1, no epsilon decay, target update every 100 steps, batch size 32, replay size 10000.
-
-![learning_curve](figures/learning_curve_h:t64t64_lr:0.001_e:0.1_ed:1_em:0_tu:100_bs:32_rs:10000.png)
+![learning_curve](figures/learning_curve_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:10000.png)
 
 ### 2. Example Trajectory
 Example agent same as above.
 
-![trajectory](figures/test_discreteaction_pendulum_DQN_h:t64t64_lr:0.001_e:0.1_ed:1_em:0_tu:100_bs:32_rs:10000.png)
+![trajectory](figures/test_discreteaction_pendulum_DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:10000_r:0.png)
 
 ### 3. Animation of Example Trajectory
 Example agent same as above.
 
-![animation](figures/test_discreteaction_pendulum_DQN_h:t64t64_lr:0.001_e:0.1_ed:1_em:0_tu:100_bs:32_rs:10000.gif)
+![animation](figures/test_discreteaction_pendulum_DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:10000_r:0.gif)
 
 ### 4. Policy Plotting
 Example agent same as above.
 
-![policy](figures/Policy_of_DQN_h:t64t64_lr:0.001_e:0.1_ed:1_em:0_tu:100_bs:32_rs:10000.png)
+![policy](figures/Policy_of_DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:10000_r:0.png)
 
 ### 5. State-Value Function Plotting
 Example agent same as above.
 
-![state_value](figures/State-Value_Function_of_DQN_h:t64t64_lr:0.001_e:0.1_ed:1_em:0_tu:100_bs:32_rs:10000.png)
+![state_value](figures/State-Value_Function_of_DQN_h:t64t64_lr:0.001_e:0.3_ed:1_em:0_tu:100_bs:32_rs:10000_r:0.png)
 
 ### 6. Ablation Study
 
 ![ablation](figures/learning_curve_ablation_0.png)
+
+- Lacking of experience replay results in unstable training process, and reduced performance.
+- Lacking of target Q network results slow down the convergence, and less stable training, also results in a worse policy.
 
 ## More Ablation
 
@@ -129,8 +143,8 @@ More ablation study is experimented on the following settings:
 
 i.e.,
 
-- epsilon 1 decay to 0.3, vs epsilon 0.3, i.e. setting 1 vs 2
-- 2x64 hidden layers, vs 3x32 hidden layers, i.e. setting 1 vs 3
+- epsilon 1 decay to 0.3, vs. epsilon fixed to 0.3, i.e. setting 1 vs 2
+- 2x64 hidden layers, vs. 3x32 hidden layers, i.e. setting 1 vs 3
 - tanh activation, vs relu activation, i.e. setting 1 vs 4
 
 The results are shown below:
@@ -140,5 +154,5 @@ The results are shown below:
 ### Discussion
 
 1. Under the parameters of 2000 max episodes and `lr` is 0.001, 3x32 structure fails to converge, while 2x64 structure converges to a good policy.
-2. Epsilon delay can effectively improve the convergence speed, and also a better policy than fixed epsilon.
-3. ReLU activation provides a worse policy than tanh activation, in this problem setting.
+2. Epsilon delay can improve the convergence speed, and also provides a better policy than fixed epsilon.
+3. ReLU activation has a slower convergence speed than tanh activation, but provides an equally good policy, after 2000 episodes.
