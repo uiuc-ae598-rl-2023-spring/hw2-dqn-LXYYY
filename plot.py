@@ -149,7 +149,58 @@ class Plot:
                         self.experiment + '/policy.png')
         plt.show()
 
-    def plot_state_value_function(self, V, title, s=None, save=False, state_names=None, caption=None):
+    def plot_table(self, V, title, state_names=None, save=False, caption=None, colorbar_label=None, xlabels=None,
+                   ylabels=None, **kwargs):
+        if xlabels is not None and type(xlabels[0]) is not str:
+            xlabels = ['%.2f' % x for x in xlabels]
+        if ylabels is not None and type(ylabels[0]) is not str:
+            ylabels = ['%.2f' % y for y in ylabels]
+
+        plt.figure()
+        plt.imshow(V, **kwargs)
+        # set plot xticks
+        if xlabels is not None:
+            dim_x = V.shape[0]
+            xticks = np.linspace(0, dim_x - 1, len(xlabels))
+            plt.xticks(xticks, xlabels)
+        # set plot yticks
+        if ylabels is not None:
+            dim_y = V.shape[1]
+            yticks = np.linspace(0, dim_y - 1, len(ylabels))
+            plt.yticks(yticks, ylabels)
+
+        plt.title(title)
+        # draw colorbar and set max and min values
+        v_max = np.max(V)
+        v_min = np.min(V)
+        cbar = plt.colorbar()
+        cbar.set_ticks([v_min, v_max])
+        # set color bar labels with precision 1
+        cbar.set_ticklabels(['%.1f' % v_min, '%.1f' % v_max])
+        # set color bar label
+        cbar.set_label(colorbar_label) if colorbar_label is not None else None
+        # set x and y labels
+        if state_names is None:
+            state_names = self.env.state_names
+        plt.xlabel(state_names[0])
+        plt.ylabel(state_names[1])
+        plt.title(title)
+        # add caption
+        if caption is not None:
+            plt.figtext(0.5, 0.01, caption, wrap=True,
+                        horizontalalignment='center', fontsize=12)
+        if save:
+            # replace spaces in title with underscores
+            file_name = title.replace(' ', '_')
+            file_name += '_' + caption.replace(' ', '_') if caption is not None else ''
+            # replace \n with _
+            file_name = file_name.replace('\n', '_')
+            plt.savefig('figures/' + file_name + '.png')
+        plt.show()
+
+    def plot_state_value_function(self, V, title, s=None, save=False, state_names=None, caption=None, vlim=None):
+        if vlim is None:
+            vlim = 0
         plt.figure()
         if state_names is None:
             state_names = self.env.state_names
@@ -174,9 +225,12 @@ class Plot:
 
         # if V is a 2d matrix
         elif s is not None:
+            # increase min_v by vlim percent
+            max_v_min += vlim * (max_v_max - max_v_min)
+            d = (V - max_v_min) / (max_v_max - max_v_min)
+            d[d < 0] = 0
             # draw boxes and set size to a grid box without gap, and shape to square
-            plt.scatter(s[:, 0], s[:, 1], marker=MarkerStyle('s'), c=cmap(
-                (V - max_v_min) * 0.8 / (max_v_max - max_v_min)), s=1000)
+            plt.scatter(s[:, 0], s[:, 1], marker=MarkerStyle('s'), c=cmap(d), s=1000)
 
         # draw colorbar and set max and min values
         cbar = plt.colorbar()

@@ -171,10 +171,14 @@ class Agent:
 
 
 def train(env, agent, num_episodes, batch_size, epsilon, epsilon_decay, epsilon_min, render=False):
-    scores = []
+    # 2d np array to store the scores
+    scores = np.zeros([num_episodes, env.max_num_steps], dtype=np.float32)
+    score = np.zeros(env.max_num_steps, dtype=np.float32)
+    # make a progress bar to show the training progress
+
     for e in range(num_episodes):
         state = env.reset()
-        score = 0
+        step = 0
         while True:
             if render:
                 env.render()
@@ -182,13 +186,15 @@ def train(env, agent, num_episodes, batch_size, epsilon, epsilon_decay, epsilon_
             next_state, reward, done = env.step(action)
             agent.buffer.add(state, action, reward, next_state, done)
             state = next_state
-            score += reward
+            score[step] = reward
+            step += 1
             if len(agent.buffer) >= batch_size:
                 agent.update(batch_size)
             if done:
                 break
         epsilon = max(epsilon * epsilon_decay, epsilon_min)
-        scores.append(score)
-        print("episode: {}, score: {:.1f}, memory length: {}, epsilon: {:.1f}".format(
-            e, score, len(agent.buffer), epsilon))
+        scores[e] = score
+        if (e + 1) % 100 == 0 or e == 0 or e == num_episodes - 1:
+            print("episode: {}, score: {:.1f}, memory length: {}, epsilon: {:.1f}".format(
+                e + 1, np.sum(score), len(agent.buffer), epsilon))
     return scores

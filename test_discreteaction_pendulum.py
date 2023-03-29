@@ -34,7 +34,11 @@ def main():
     episodes = read_json_file(config)['episodes']
     display = True if len(networks) == 1 else False
 
-    for exp in networks:
+    print('Found {} experiments'.format(len(networks)))
+
+    for i, exp in enumerate(networks):
+
+        print('Experiment {} / {}: {}'.format(i + 1, len(networks), exp))
         ckp = 'data/' + exp + '.pth'
 
         # Create environment
@@ -118,15 +122,22 @@ def main():
         s = s.reshape(-1, 2)
 
         V = agent.get_state_value(s)
-        p.plot_state_value_function(V, title="State-Value Function of DQN\n" + exp[4:], s=s, save=True,
-                                    state_names=['theta', 'thetadot'])
+        V_rs = V.reshape(200, 200)
+        # flip x-axis of V_rs
+        V_rs = np.flip(V_rs, axis=0)
+        p.plot_table(V_rs, title="State-Value Function of DQN\n" + exp[4:], save=True, colorbar_label="value",
+                     xlabels=np.linspace(-np.pi, np.pi, 5), ylabels=np.linspace(-15, 15, 5)[::-1],
+                     state_names=['theta', 'thetadot'])
 
         policy_matrix = agent.get_action(s, 0)
         # action to tau
         policy_matrix = env.a_to_u(policy_matrix)
-
-        p.plot_state_value_function(policy_matrix, title="Policy of DQN\n" + exp[4:], s=s, save=True,
-                                    state_names=['theta', 'thetadot'])
+        policy_matrix = policy_matrix.reshape(200, 200)
+        # flip x-axis of policy_matrix
+        policy_matrix = np.flip(policy_matrix, axis=0)
+        p.plot_table(policy_matrix, title="Policy of DQN\n" + exp[4:], save=True, colorbar_label="tau",
+                     xlabels=np.linspace(-np.pi, np.pi, 5), ylabels=np.linspace(-15, 15, 5)[::-1],
+                     state_names=['theta', 'thetadot'])
 
         #
         ######################################
